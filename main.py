@@ -3,13 +3,14 @@ from whois import *
 from connexion import *
 from mod_python import util
 from mod_python import Session, Cookie
+import json
 
 username = "admin"
 password = "admin"
-host="192.168.0.1"
+host="127.0.0.1"
 port=5555
-vpnpasswd="OpenVPN"
-version=4
+vpnpasswd="xxx"
+version=4	# IPv4 or IPv6
 
 
 main_page= """
@@ -118,6 +119,7 @@ def parse(req):
     data=sock.interact()
     tab1=re.findall("(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(\d+),(\d+),(.+)", data)
     tab2=re.findall("(\d+\.\d+\.\d+\.\d+),(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(.+)", data)
+    routes=re.findall("(\d+\.\d+\.\d+\.\d+/\d+),(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(.+)", data)
 
     num=(len(tab1)+len(tab2))/2                     
     req.write(headers(num))
@@ -149,8 +151,13 @@ def parse(req):
 	    req.write("<img src=\"../img/whois.png\" alt=\"whois\" title=\"whois\">")
 	    req.write("</a>&nbsp;&nbsp\n</td>")
 	    req.write("</tr>\n") 
-    
     req.write("</table></div>")
+    req.write("<!-- Debug: \n")
+    req.write("tab1:\n"+json.dumps(tab1,indent=4)+"\n")
+    req.write("tab2:\n"+json.dumps(tab2,indent=4)+"\n")
+    req.write("routes:\n"+json.dumps(routes,indent=4)+"\n")
+    req.write("data:\n"+str(data)+"\n")
+    req.write("\n-->\n")
     req.write("</body></html>")
 
 def kill(req):
