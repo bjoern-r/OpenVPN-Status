@@ -26,19 +26,13 @@ class connexion:
            data = sock.recv(4096)
            line=re.findall('SUCCESS:',data)
            if line != []:
-#                sock.send('\r\n')
-#                sock.recv(1024)
-
                 sock.send(self.request)
                 sock.send('\r\n')
                 data = sock.recv(40960)
-#                if self.request.find('kill')!=0:
-#                   data += sock.recv(40960)
                 sock.send('exit')
                 sock.send('\r\n')
                 sock.close()
                 return data
-
            else:
 		print "cant read success"
                 pass
