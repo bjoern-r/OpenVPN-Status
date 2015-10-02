@@ -4,7 +4,7 @@ import re
 
 class connexion:
     """class connexion that create a socket, and connects to management openvpn server"""
-    def __init__(self, hostname, port, password, request, version):
+    def __init__(self, hostname, port, password, request, version=4):
         self.hostname=hostname
         self.port=port
         self.password=password
@@ -55,7 +55,7 @@ class connexion:
                 sock.close()
                 return data
             else:
-            print "cant read success"
+                print "cant read success"
                 pass
 
         except Exception, e:

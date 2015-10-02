@@ -185,12 +185,12 @@ def kill(req):
 	if check(req):
 		try:
 			if req.form['cn'] is not None:
-				 cmd="kill "+req.form['cn']
+				cmd="kill "+req.form['cn']
 			sock=connexion(host, port, vpnpasswd, cmd)
 			sock.interact()
 			util.redirect(req,"./main")
 		except Exception, e:
-			raise(str(e)) 
+			raise(e) 
 	else:
 	 util.redirect(req,'./login')
 
