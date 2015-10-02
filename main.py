@@ -9,8 +9,8 @@ username = "admin"
 password = "admin"
 host="127.0.0.1"
 port=5555
-vpnpasswd="xxx"
-version=4	# IPv4 or IPv6
+vpnpasswd="openvpn-changeme"
+version=4 # IPv4 or IPv6
 
 
 main_page= """
@@ -45,8 +45,8 @@ main_page= """
 
 def index(req): 
 
-  req.content_type = 'text/html'
-  s = """
+	req.content_type = 'text/html'
+	s = """
 <html>
 <head><title>Login</title>
 <meta http-equiv=\"Content-Type\" content=\"text/html\"; charset=utf-8\"iso-8859-1\"/>
@@ -79,7 +79,7 @@ def index(req):
 </table>
 </center>
 """
-  req.write(s)
+	req.write(s)
 
 footer="""
 </body>
@@ -91,12 +91,12 @@ popup="""
 <head><title></title>
 <style type=\"text/css\">
 body ,th{
-  margin              : 0px;
-  padding             : 0px;
-  background-color    : green;
-  color               : #000;
-  font-size           : 10px;
-  font-family         : Arial, Helvetica, sans-serif;
+	margin              : 0px;
+	padding             : 0px;
+	background-color    : green;
+	color               : #000;
+	font-size           : 10px;
+	font-family         : Arial, Helvetica, sans-serif;
 }
 </style>
 </head>
@@ -105,79 +105,99 @@ body ,th{
 """
 
 def headers(num):
-   return main_page % num
+	return main_page % num
 
 def exception(req):
-    req.write("</table></div>")
-    req.write("</body></html>")
-    exit
+	req.write("</table></div>")
+	req.write("</body></html>")
+	exit
 
 def parse(req):
 
-    req.content_type="text/html"
-    sock=connexion(host, port, vpnpasswd, 'status',version)
-    data=sock.interact()
-    tab1=re.findall("(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(\d+),(\d+),(.+)", data)
-    tab2=re.findall("(\d+\.\d+\.\d+\.\d+),(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(.+)", data)
-    routes=re.findall("(\d+\.\d+\.\d+\.\d+/\d+),(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(.+)", data)
+	req.content_type="text/html"
+	sock=connexion(host, port, vpnpasswd, 'status 2',version)
+	data=sock.interact()
+	tab1=re.findall("(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(\d+),(\d+),(.+)", data)
+#HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t)
+#CLIENT_LIST,client_i2cat_david,84.88.40.68:58004,10.252.55.50,708468,4313605,Tue Sep 29 16:35:33 2015,1443537333
+	clients=re.findall("\nCLIENT_LIST,(.+),(.+),(.+),(.+),(.+),(.+),(.+)", data)
+	tab2=re.findall("(\d+\.\d+\.\d+\.\d+),(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(.+)", data)
+#HEADER,ROUTING_TABLE,Virtual Address,Common Name,Real Address,Last Ref,Last Ref (time_t)
+#ROUTING_TABLE,10.252.55.106,client_fokus_dc5,194.95.170.72:36573,Thu Oct  1 14:23:38 2015,1443702218
+	routes=re.findall("\nROUTING_TABLE,(.+),(.+),(.+),(.+),(.+)", data)
+#    routes=re.findall("(\d+\.\d+\.\d+\.\d+/\d+),(.+),(\d+\.\d+\.\d+\.\d+\:\d+),(.+)", data)
 
-    num=(len(tab1)+len(tab2))/2                     
-    req.write(headers(num))
-    
-    if len(tab2)==0:
-       exception(req)
-    
-    for i in xrange(len(tab1)):
-       for j in xrange(len(tab2)):
-         if tab2[j][1]==tab1[i][0]:
-            sendv=float(tab1[i][2])/1024
-	    receiv=float(tab1[i][3])/1024
-	    req.write("<tr class=\"severity6\" ")
-	    req.write("onmouseover=\"this.className=\'severity6_over\'; ")
-	    req.write("this.style.cursor=\'hand\'\" ")
-	    req.write("onmouseout=\"this.className = \'severity6\'; ")
-	    req.write("this.style.cursor = \'default\'\">\n")
-	    req.write("<td class=\"severity\">%s</td>\n" % tab1[i][0])
-            req.write("<td class=\"severity\">%s</td>\n" % tab1[i][1]) 
-	    req.write("<td class=\"severity\">%s</td>\n" % tab2[j][0]) 
-	    req.write("<td class=\"severity\">%.2f KB</td>\n" % sendv)
-	    req.write("<td class=\"severity\">%.2f KB</td>\n" % receiv)
-	    req.write("<td class=\"severity\">%s</td>\n" % tab1[i][4])
-	    req.write("<td class=\"severity\">%s</td>\n" % tab2[j][3])
-	    req.write("<td class=\"severity\">\n")
-	    req.write("<a href=\"./kill?cn=%s\">" % tab1[i][0])
-	    req.write("<img src=../img/stop.png alt=\"kill\" title=\"kill\"></a>&nbsp;&nbsp\n")
-	    req.write("<a href=\"./whois?cn=%s\"  class=\"thickbox\">" % tab1[i][1].split(':')[0])
-	    req.write("<img src=\"../img/whois.png\" alt=\"whois\" title=\"whois\">")
-	    req.write("</a>&nbsp;&nbsp\n</td>")
-	    req.write("</tr>\n") 
-    req.write("</table></div>")
-    req.write("<!-- Debug: \n")
-    req.write("tab1:\n"+json.dumps(tab1,indent=4)+"\n")
-    req.write("tab2:\n"+json.dumps(tab2,indent=4)+"\n")
-    req.write("routes:\n"+json.dumps(routes,indent=4)+"\n")
-    req.write("data:\n"+str(data)+"\n")
-    req.write("\n-->\n")
-    req.write("</body></html>")
+	num=(len(tab1)+len(tab2))/2
+	num=len(clients)
+	req.write(headers(num))
+
+	routemap={}
+	for i in xrange(len(clients)):
+		routemap[clients[i][0]]=[]
+
+	for i in xrange(len(routes)):
+		cn=routes[i][1]
+		#addr=routemap[cn]
+		routemap[cn]+=[routes[i][0]]
+
+
+				
+
+	for i in xrange(len(clients)):
+		sendv=float(clients[i][4])/1024
+		receiv=float(clients[i][3])/1024
+		cn=clients[i][0]
+		addresses=clients[i][2]
+		for addr in routemap[cn]:
+			addresses+="<br/>\n"+addr
+		req.write("<tr class=\"severity6\" ")
+		req.write("onmouseover=\"this.className=\'severity6_over\'; ")
+		req.write("this.style.cursor=\'hand\'\" ")
+		req.write("onmouseout=\"this.className = \'severity6\'; ")
+		req.write("this.style.cursor = \'default\'\">\n")
+#Common Name  Real Address  Virtual Address Bytes Sent  Bytes Received  Connected Since Last Active Some operation
+		req.write("<td class=\"severity\">%s</td>\n" % cn) # Common Name
+		req.write("<td class=\"severity\">%s</td>\n" % clients[i][1]) # Real Address
+		req.write("<td class=\"severity\">%s</td>\n" % addresses) # Virtual Address (routes)  -> clients[i][2]
+		req.write("<td class=\"severity\">%.2f KB</td>\n" % sendv) # Bytes Sent
+		req.write("<td class=\"severity\">%.2f KB</td>\n" % receiv) # Bytes Received
+		req.write("<td class=\"severity\">%s</td>\n" % clients[i][6]) # Connected Since
+		req.write("<td class=\"severity\">%s</td>\n" % clients[i][5]) # Last Active
+		req.write("<td class=\"severity\">\n")
+		req.write("<a href=\"./kill?cn=%s\">" % clients[i][0])
+		req.write("<img src=../img/stop.png alt=\"kill\" title=\"kill\"></a>&nbsp;&nbsp\n")
+		req.write("<a href=\"./whois?cn=%s\"  class=\"thickbox\">" % clients[i][1].split(':')[0])
+		req.write("<img src=\"../img/whois.png\" alt=\"whois\" title=\"whois\">")
+		req.write("</a>&nbsp;&nbsp\n</td>")
+		req.write("</tr>\n") 
+	req.write("</table></div>")
+
+	req.write("<!-- Debug: \n")
+	req.write("routemap:\n"+json.dumps(routemap,indent=4)+"\n")
+	req.write("clients:\n"+json.dumps(clients,indent=4)+"\n")
+	req.write("routes:\n"+json.dumps(routes,indent=4)+"\n")
+	req.write("data:\n"+str(data)+"\n")
+	req.write("\n-->\n")
+	req.write("</body></html>")
 
 def kill(req):
-    req.content_type = 'text/html'
-    if check(req):
-    	try:
-	      if req.form['cn'] is not None:
-      		 cmd="kill "+req.form['cn']
-		 sock=connexion(host, port, vpnpasswd, cmd)
- 		 sock.interact()
-	 	 util.redirect(req,"./main")
-	except Exception, e:
-	      raise(str(e)) 
-    else:
-		 util.redirect(req,'./login')
+	req.content_type = 'text/html'
+	if check(req):
+		try:
+			if req.form['cn'] is not None:
+				 cmd="kill "+req.form['cn']
+			sock=connexion(host, port, vpnpasswd, cmd)
+			sock.interact()
+			util.redirect(req,"./main")
+		except Exception, e:
+			raise(str(e)) 
+	else:
+	 util.redirect(req,'./login')
 
 def check(req):
 	req.content_type = 'text/html'
-        session = Session.Session(req)
-        if session.has_key('valid') and  session['valid'] == password:
+	session = Session.Session(req)
+	if session.has_key('valid') and  session['valid'] == password:
 		return True
 	else:
 		return False
@@ -186,63 +206,60 @@ def whois(req):
 	req.content_type = 'text/html'
 	if check(req):
 		try:
-      			if req.form['cn'] is not None:
+			if req.form['cn'] is not None:
 				ip=req.form['cn']
-	        		obj=cwhois("whois.lacnic.net",ip,'4')
-				data=obj.onWhois()
-				data=data.replace('\n','<br>')
-	        		req.write("%s" % popup)
-	        		req.write("%s" % data)
-		        	req.write("%s" % footer)
+			obj=cwhois("whois.lacnic.net",ip,'4')
+			data=obj.onWhois()
+			data=data.replace('\n','<br>')
+			req.write("%s" % popup)
+			req.write("%s" % data)
+			req.write("%s" % footer)
 		except Exception, e:
-      			raise(str(e))
+			raise(str(e))
 	else:
 		 util.redirect(req,'./login')
 
 
 def main(req):
-    req.content_type = 'text/html'
-    session = Session.Session(req)
-    cookies = Cookie.get_cookies(req, Cookie.MarshalCookie,secret="cooks")
-    if cookies.has_key('sessid'):
-        cookie = cookies['sessid']
-        if type(cookie) is Cookie.MarshalCookie:
-            data = cookie.value
-            session['valid'] = password
-            session.save()
-    else:
-        if session.is_new():
-            util.redirect(req,'./login')
-        if session['valid'] != password:
-            util.redirect(req,'./login')
-    parse(req)
+	req.content_type = 'text/html'
+	session = Session.Session(req)
+	cookies = Cookie.get_cookies(req, Cookie.MarshalCookie,secret="cooks")
+	if cookies.has_key('sessid'):
+		cookie = cookies['sessid']
+		if type(cookie) is Cookie.MarshalCookie:
+			data = cookie.value
+			session['valid'] = password
+			session.save()
+	else:
+		if session.is_new():
+			util.redirect(req,'./login')
+		if session['valid'] != password:
+			util.redirect(req,'./login')
+	parse(req)
 
 def login(req):
-    req.content_type = "text/html"
-    if req.method == 'POST':
-        if req.form['username'] == username and req.form['password'] == password:
-            session = Session.Session(req)
-            session['valid'] = password
-            session.save()
-            if req.form.has_key('remember') and req.form['remember']:
-                value = {'username': req.form['username'], 'passwword':req.form['password']}
-                Cookie.add_cookie(req,Cookie.MarshalCookie('sessid', \
-		value,'cooks'),expires=time.time() + 3000000)
-            util.redirect(req,'./main')
-        else:
-	    
-            index(req)
-            req.write("<center><b><font color=\"white\">\
-	    login or password incorrect</b></font></center>")
-            req.write(footer)
-    else:
-        index(req)
-        req.write(footer)
+	req.content_type = "text/html"
+	if req.method == 'POST':
+		if req.form['username'] == username and req.form['password'] == password:
+			session = Session.Session(req)
+			session['valid'] = password
+			session.save()
+			if req.form.has_key('remember') and req.form['remember']:
+				value = {'username': req.form['username'], 'passwword':req.form['password']}
+				Cookie.add_cookie(req,Cookie.MarshalCookie('sessid', value,'cooks'),expires=time.time() + 3000000)
+			util.redirect(req,'./main')
+		else:
+			index(req)
+			req.write("<center><b><font color=\"white\">\
+				login or password incorrect</b></font></center>")
+			req.write(footer)
+	else:
+		index(req)
+		req.write(footer)
 
 def logout(req):
-    req.content_type = "text/html"
-    session = Session.Session(req)
-    if session.has_key('valid'):
-        session.delete()
-    util.redirect(req,'./main')
-
+	req.content_type = "text/html"
+	session = Session.Session(req)
+	if session.has_key('valid'):
+		session.delete()
+	util.redirect(req,'./main')
